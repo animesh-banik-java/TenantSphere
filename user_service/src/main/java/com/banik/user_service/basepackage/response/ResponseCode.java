@@ -1,0 +1,15 @@
+package com.banik.user_service.basepackage.response;
+
+public enum ResponseCode {
+	ENTITY, DELETED, ACCESS_DENIED, NO_CONTENT,
+
+	NOT_FOUND, FILE_SIZE_EXCEED, BAD_REQUEST, INVALID_PARAMETER,
+
+	EMAIL_VERIFIED,
+
+	INTERNAL_ERROR,
+
+	DUPLICATE,
+
+	ROLE_NOT_EXIST,
+}
