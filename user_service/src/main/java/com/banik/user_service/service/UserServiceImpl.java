@@ -1,6 +1,5 @@
 package com.banik.user_service.service;
 
-
 import com.banik.user_service.basepackage.enums.Status;
 import com.banik.user_service.basepackage.exception.ApplicationException;
 import com.banik.user_service.basepackage.request.PaginationRequest;
@@ -37,6 +36,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserResponseDTO addUser(final UserRequestDTO request) {
+
         repository.findByName(request.getName().trim())
                 .ifPresent(user -> {
                     throw new ApplicationException(ResponseCode.DUPLICATE, "User already exist with same name");
@@ -54,7 +54,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDTO updateUser(final Long userId, final UserRequestDTO request) {
         User user = repository.findById(userId)
-                .orElseThrow(() -> new ApplicationException(ResponseCode.NO_CONTENT, "User not found"));
+                .orElseThrow(() -> new ApplicationException(ResponseCode.NOT_FOUND, "User not found"));
 
         if (request.getName() != null && !request.getName().isBlank()) {
             user.setName(request.getName().trim());
@@ -84,7 +84,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDTO getUserById(final Long userId) {
         User user = repository.findById(userId)
-                .orElseThrow(() -> new ApplicationException(ResponseCode.NO_CONTENT, "User not found"));
+                .orElseThrow(() -> new ApplicationException(ResponseCode.NOT_FOUND, "User not found"));
 
         return responseMapper.toDto(user);
     }
@@ -92,7 +92,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDTO deleteUser(final Long userId) {
         User user = repository.findById(userId)
-                .orElseThrow(() -> new ApplicationException(ResponseCode.NO_CONTENT, "User not found"));
+                .orElseThrow(() -> new ApplicationException(ResponseCode.NOT_FOUND, "User not found"));
 
         repository.delete(user);
         return responseMapper.toDto(user);
@@ -101,7 +101,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public UserResponseDTO changeStatus(final Long userId) {
         User user = repository.findById(userId)
-                .orElseThrow(() -> new ApplicationException(ResponseCode.NO_CONTENT, "User not found"));
+                .orElseThrow(() -> new ApplicationException(ResponseCode.NOT_FOUND, "User not found"));
 
         user.setStatus(user.getStatus() == Status.ACTIVE ? Status.INACTIVE : Status.ACTIVE);
 

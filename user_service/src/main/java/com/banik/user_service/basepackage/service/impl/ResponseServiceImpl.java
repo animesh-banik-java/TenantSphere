@@ -24,76 +24,110 @@ import java.util.Objects;
 @RequiredArgsConstructor
 public class ResponseServiceImpl implements IResponseService {
 
-	private final IMessageService messageService;
+    private final IMessageService messageService;
 
-	@Autowired
-	private HttpServletRequest httpServletRequest;
+    @Autowired
+    private HttpServletRequest httpServletRequest;
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public ResponseEntity<Response> success(final ResponseCode code, final String... args) {
-		final String message = messageService.getMessage(code, args);
-		return new ResponseEntity<>(Response.builder().status(HttpStatus.OK.value()).code(code).data(message)
-				.path(httpServletRequest.getRequestURI()).build(), HttpStatus.OK);
-	}
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<Response> success(final ResponseCode code, final String... args) {
+        final String message = messageService.getMessage(code, args);
+        return new ResponseEntity<>(Response.builder().status(HttpStatus.OK.value()).code(code).data(message)
+                .path(httpServletRequest.getRequestURI()).build(), HttpStatus.OK);
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public ResponseEntity<Response> error(final ResponseCode code, final String... args) {
-		final String errorMessage = messageService.getMessage(code, args);
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<Response> error(final ResponseCode code, final String... args) {
+        final String errorMessage = messageService.getMessage(code, args);
 
-		if (code == ResponseCode.NOT_FOUND) {
-			return error(HttpStatus.NOT_FOUND, code, Lists.newArrayList(errorMessage));
-		} else if (code == ResponseCode.ACCESS_DENIED) {
-			return error(HttpStatus.FORBIDDEN, code, Lists.newArrayList(errorMessage));
-		} else {
-			return error(HttpStatus.BAD_REQUEST, code, Lists.newArrayList(errorMessage));
-		}
-	}
+        if (code == ResponseCode.NOT_FOUND) {
+            return error(HttpStatus.NOT_FOUND, code, Lists.newArrayList(errorMessage));
+        } else if (code == ResponseCode.ACCESS_DENIED) {
+            return error(HttpStatus.FORBIDDEN, code, Lists.newArrayList(errorMessage));
+        } else if (code == ResponseCode.DUPLICATE) {
+            return error(HttpStatus.CONFLICT, code, Lists.newArrayList(errorMessage));
+        } else {
+            return error(HttpStatus.BAD_REQUEST, code, Lists.newArrayList(errorMessage));
+        }
+    }
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public ResponseEntity<Response> error(final List<String> errors) {
-		return error(HttpStatus.BAD_REQUEST, ResponseCode.BAD_REQUEST, errors);
-	}
+    private HttpStatus getHttpStatus(ResponseCode code) {
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public ResponseEntity<Response> error(ApplicationException applicationException) {
-		return error(applicationException.getErrorCode(), applicationException.getMessage());
-	}
+        return switch (code) {
 
-	private ResponseEntity<Response> error(HttpStatus status, ResponseCode code, List<String> errors) {
-		return new ResponseEntity<>(Response.builder().status(status.value()).code(code).errors(errors)
-				.path(httpServletRequest.getRequestURI()).build(), status);
-	}
+            case NOT_FOUND ->
+                    HttpStatus.NOT_FOUND;
 
-	/**
-	 * {@inheritDoc}
-	 */
-	@Override
-	public ResponseEntity<Response> data(final Object entity) {
-		return new ResponseEntity<>(Response.builder().status(HttpStatus.OK.value()).date(new Date()).code(ResponseCode.ENTITY).data(entity)
-				.path(httpServletRequest.getRequestURI()).build(), HttpStatus.OK);
-	}
+            case DUPLICATE ->
+                    HttpStatus.CONFLICT;
 
-	@Override
-	public ResponseEntity<Response> data(final Page<?> page) {
-		return new ResponseEntity<>(Response.builder().status(HttpStatus.OK.value()).code(ResponseCode.ENTITY)
-				.data(CustomPageImpl.builder().content(Objects.nonNull(page) ? page.getContent() : new ArrayList<>())
-						.totalPages(Objects.nonNull(page) ? page.getTotalPages() : 0)
-						.size(Objects.nonNull(page) ? page.getSize() : 0).number(Objects.nonNull(page) ? page.getNumber() : 0)
-						.numberOfElements(Objects.nonNull(page) ? page.getNumberOfElements() : 0)
-						.totalElements(Objects.nonNull(page) ? page.getTotalElements() : 0).build())
-				.path(httpServletRequest.getRequestURI()).build(), HttpStatus.OK);
-	}
+            case ACCESS_DENIED ->
+                    HttpStatus.FORBIDDEN;
+
+            case BAD_REQUEST,
+                    INVALID_PARAMETER ->
+                    HttpStatus.BAD_REQUEST;
+
+            case NO_CONTENT ->
+                    HttpStatus.NO_CONTENT;
+
+            case FILE_SIZE_EXCEED ->
+                    HttpStatus.PAYLOAD_TOO_LARGE;
+
+            case ROLE_NOT_EXIST ->
+                    HttpStatus.NOT_FOUND;
+
+            default ->
+                    HttpStatus.BAD_REQUEST;
+        };
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<Response> error(final List<String> errors) {
+        return error(HttpStatus.BAD_REQUEST, ResponseCode.BAD_REQUEST, errors);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<Response> error(ApplicationException applicationException) {
+        return error(applicationException.getErrorCode(), applicationException.getMessage());
+    }
+
+    private ResponseEntity<Response> error(HttpStatus status, ResponseCode code, List<String> errors) {
+        return new ResponseEntity<>(Response.builder().date(new Date()).status(status.value()).code(code).errors(errors)
+                .path(httpServletRequest.getRequestURI()).build(), status);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public ResponseEntity<Response> data(final Object entity) {
+        return new ResponseEntity<>(Response.builder().status(HttpStatus.OK.value()).date(new Date())
+                .code(ResponseCode.ENTITY).data(entity).path(httpServletRequest.getRequestURI())
+                .build(), HttpStatus.OK);
+    }
+
+    @Override
+    public ResponseEntity<Response> data(final Page<?> page) {
+        return new ResponseEntity<>(Response.builder().status(HttpStatus.OK.value()).code(ResponseCode.ENTITY)
+                .data(CustomPageImpl.builder().content(Objects.nonNull(page) ? page.getContent() : new ArrayList<>())
+                        .totalPages(Objects.nonNull(page) ? page.getTotalPages() : 0)
+                        .size(Objects.nonNull(page) ? page.getSize() : 0).number(Objects.nonNull(page) ? page.getNumber() : 0)
+                        .numberOfElements(Objects.nonNull(page) ? page.getNumberOfElements() : 0)
+                        .totalElements(Objects.nonNull(page) ? page.getTotalElements() : 0).build())
+                .path(httpServletRequest.getRequestURI()).build(), HttpStatus.OK);
+    }
 
 }
